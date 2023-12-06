@@ -1,6 +1,7 @@
 const { createClient } = require('@nexrender/api')
 const { init, render } = require('@nexrender/core')
 const { getRenderingStatus } = require('@nexrender/types/job')
+const { fetchAndRewriteTemplate } = require('./template.js')
 
 const NEXRENDER_API_POLLING = process.env.NEXRENDER_API_POLLING || 30 * 1000;
 
@@ -46,11 +47,21 @@ const start = async (host, secret, settings) => {
 
     const client = createClient({ host, secret });
 
+    console.log("nexrender-worker started")
+
     do {
         let job = await nextJob(client, settings); {
             job.state = 'started';
             job.startedAt = new Date()
         }
+
+        console.log("----------------------------------------")
+        console.log("template", job.template)
+
+        const newTemplate = await fetchAndRewriteTemplate(job.template)
+        console.log("newTemplate", newTemplate)
+
+        throw new Error("test")
 
         try {
             await client.updateJob(job.uid, job)
