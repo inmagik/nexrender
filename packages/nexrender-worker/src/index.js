@@ -60,8 +60,7 @@ const start = async (host, secret, settings) => {
 
         const newTemplate = await fetchAndRewriteTemplate(job.template)
         console.log("newTemplate", newTemplate)
-
-        throw new Error("test")
+        job.template = newTemplate
 
         try {
             await client.updateJob(job.uid, job)
