@@ -1,7 +1,7 @@
 {
-  "name": "@nexrender/worker",
+  "name": "@inmagik/nexrender-worker",
   "version": "1.39.7",
-  "author": "inlife",
+  "author": "inmagik",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/bin.js"
@@ -24,9 +24,6 @@
     "chalk": "^2.4.2",
     "rimraf": "^3.0.2",
     "undici": "^6.0.1"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "gitHead": "84cef65e008026f6fcf4f040943144401f101fce"
+  }
+  
 }

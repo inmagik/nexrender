@@ -55,11 +55,10 @@ const start = async (host, secret, settings) => {
             job.startedAt = new Date()
         }
 
-        console.log("----------------------------------------")
-        console.log("template", job.template)
+        console.log("kiuu template defined", job.template)
 
         const newTemplate = await fetchAndRewriteTemplate(job.template)
-        console.log("newTemplate", newTemplate)
+        console.log("rewriting template", newTemplate)
         job.template = newTemplate
 
         try {
