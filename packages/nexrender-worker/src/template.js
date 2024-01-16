@@ -40,8 +40,6 @@ async function downloaAndUnzipTemplate(templateLabel, hash, url) {
         const hashFile = path.join(folderName, `${hash}._hash`);
         fs.writeFileSync(hashFile, "");
         console.log("zip file extracted");
-
-        //#TODO: WE COULD CLEAN THE FOLDER FROM OLD LABELS WITH THE SAME PREFIX (SPLITTED BY _)
     } catch (e) {
         console.error(`Failed to contact the orchestrator server`);
         console.log(e);
