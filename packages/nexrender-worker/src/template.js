@@ -50,7 +50,7 @@ async function syncFiles(files) {
     for (const file of files) {
         const labelWithHash = file[0];
         const url = file[1];
-        const [label, hash] = labelWithHash.split("_");
+        const [label, hash] = labelWithHash.split("___");
 
         const folderName = path.join(TEMPLATES_FOLDER, label);
 
