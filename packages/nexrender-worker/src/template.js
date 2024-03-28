@@ -112,7 +112,7 @@ async function fetchAndRewriteTemplate(templateData) {
             "file://" +
             path.join(
                 TEMPLATES_FOLDER,
-                templateLabel.split("_")[0],
+                templateLabel.split("___")[0],
                 fileSuffix
             );
         return templateData;
