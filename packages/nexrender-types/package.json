@@ -1,8 +1,11 @@
 {
   "name": "@nexrender/types",
-  "version": "1.38.0",
+  "version": "1.45.6",
   "author": "Inlife",
   "main": "src/index.js",
+  "homepage": "https://www.nexrender.com",
+  "bugs": "https://github.com/inlife/nexrender/issues",
+  "repository": "https://github.com/inlife/nexrender.git",
   "dependencies": {
     "nanoid": "^3.2.0"
   },

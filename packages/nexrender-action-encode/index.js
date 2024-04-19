@@ -32,7 +32,13 @@ const getBinary = (job, settings) => {
 
 
         fetch(fileurl)
-            .then(res => res.ok ? res : Promise.reject({reason: 'Initial error downloading file', meta: {fileurl, error: res.error}}))
+            .then(res => res.ok
+                ? res
+                : Promise.reject(new Error({
+                    reason: 'Initial error downloading file',
+                    meta: {fileurl, error: res.error}
+                })
+            ))
             .then(res => {
                 const progress = new nfp(res)
 
@@ -145,9 +151,7 @@ const constructParams = (job, settings, { preset, input, output, params }) => {
         case 'gif':
             params = Object.assign({}, {
                 '-i': inputs,
-                '-ss': '61.0',
-                '-t': '2.5',
-                '-filter_complex': `[0:v] fps=12,scale=480:-1,split [a][b];[a] palettegen [p];[b][p] paletteuse`,
+                '-filter_complex': `[0:v] fps=12,scale=w=480:h=-1,split [a][b];[a] palettegen [p];[b][p] paletteuse`,
             }, params, {
                 '-y': output
             });
@@ -162,14 +166,23 @@ const constructParams = (job, settings, { preset, input, output, params }) => {
         break;
     }
 
+    /* convert key-value pair to array */
+    /* replace ${workPath} with actual workpath */
+    /* handles flags, like -y, -vcodec, -an, etc. In which case, it returns only the key */
+    const parseKeyValuePair = (key, value) => {
+        // only relied on null check or empty string, since 0, true, false are all valid possible values
+        if (value === null || !String(value)) return [key];
+        return [key, String(value).replace('${workPath}', job.workpath)];
+    }
+
     /* convert to plain array */
     return Object.keys(params).reduce(
         (cur, key) => {
             const value = params[key];
             if (Array.isArray(value)) {
-                value.forEach(item => cur.push(key, item.replace('${workPath}', job.workpath)));
+                value.forEach(item => cur.push(...parseKeyValuePair(key, item)));
             } else {
-                cur.push(key, String(value).replace('${workPath}', job.workpath))
+                cur.push(...parseKeyValuePair(key, value))
             }
             return cur;
         }, []

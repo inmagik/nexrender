@@ -9,38 +9,48 @@ const rimraf    = require('rimraf')
 
 const args = arg({
     // Types
-    '--help':       Boolean,
-    '--version':    Boolean,
-    '--cleanup':    Boolean,
+    '--help':                   Boolean,
+    '--version':                Boolean,
+    '--cleanup':                Boolean,
 
-    '--host':       String,
-    '--secret':     String,
+    '--host':                   String,
+    '--name':                   String,
+    '--secret':                 String,
 
-    '--binary':     String,
-    '--workpath':   String,
-    '--wsl-map':    String,
+    '--binary':                 String,
+    '--workpath':               String,
+    '--wsl-map':                String,
+    '--tag-selector':           String,
+    '--cache':                  Boolean,
+    '--cache-path':             String,
 
-    '--stop-on-error':  Boolean,
+    '--stop-on-error':          Boolean,
+    '--exit-on-empty-queue':    Boolean,
+    '--tolerate-empty-queues':  Number,
 
-    '--skip-cleanup':   Boolean,
-    '--skip-render':    Boolean,
-    '--no-license':     Boolean,
-    '--force-patch':    Boolean,
-    '--debug':          Boolean,
-    '--multi-frames':   Boolean,
-    '--multi-frames-cpu': Number,
-    '--reuse':          Boolean,
+    '--skip-cleanup':           Boolean,
+    '--skip-render':            Boolean,
+    '--no-license':             Boolean,
+    '--no-analytics':           Boolean,
+    '--force-patch':            Boolean,
+    '--debug':                  Boolean,
+    '--multi-frames':           Boolean,
+    '--multi-frames-cpu':       Number,
+    '--reuse':                  Boolean,
 
-    '--max-memory-percent':  Number,
-    '--image-cache-percent': Number,
-    '--polling':             Number,
+    '--max-memory-percent':     Number,
+    '--image-cache-percent':    Number,
+    '--polling':                Number,
+    '--header':                 [String],
 
-    '--aerender-parameter': [String],
+    '--aerender-parameter':     [String],
 
     // Aliases
     '-v':           '--version',
+    '-t':           '--tag-selector',
     '-c':           '--cleanup',
     '-h':           '--help',
+    '-n':           '--name',
     '-s':           '--secret',
     '-b':           '--binary',
     '-w':           '--workpath',
@@ -78,6 +88,10 @@ if (args['--help']) {
                                             specify which host {cyan nexrender-server} is running at,
                                             and where all api requests will be forwarded to
 
+      -n, --name {underline unique_worker_name}
+                                            specify which name the {cyan nexrender-worker} will have,
+                                            and how it will be identified in the {cyan nexrender-server}
+
       -s, --secret {underline secret_string}            specify a secret that will be required for every
                                             incoming http request to validate again
 
@@ -87,16 +101,34 @@ if (args['--help']) {
       -w, --workpath {underline absolute_path}          manually override path to the working directory
                                             by default nexrender is using os tmpdir/nexrender folder
 
-      -m, --wsl-map                       drive letter of your WSL mapping in Windows
+      -m, --wsl-map                         drive letter of your WSL mapping in Windows
+
+      -t, --tag-selector                    the string tags (comma delimited) to pickup the job with specific tag.
 
   {bold ADVANCED OPTIONS}
 
 
+    --cache                                 Boolean flag that enables default HTTP caching of assets.
+                                            Will save cache to [workpath]/http-cache unless "--cache-path is used"
+
+    --cache-path                            String value that sets the HTTP cache path to the provided folder path.
+                                            "--cache" will default to true if this is used.
+
     --stop-on-error                         forces worker to stop if processing/rendering error occures,
                                             otherwise worker will report an error, and continue working
 
+    --exit-on-empty-queue                   worker will exit when too many empty queues (see --tolerate-empty-queues) have been detected.
+                                            Useful when running on AWS EC2, to allow the instance to self-terminate and reduce compute costs
+
+    --tolerate-empty-queues                 worker will check an empty queue this many times before exiting (if that option has
+                                            been set using --exit-on-empty-queues). Defaults to zero. If specified will be used instead of
+                                            NEXRENDER_TOLERATE_EMPTY_QUEUES env variable
+
     --no-license                            prevents creation of the ae_render_only_node.txt file (enabled by default),
                                             which allows free usage of trial version of Adobe After Effects
+
+    --no-analytics                          prevents collection of fully anonymous analytics by nexrender (enabled by default),
+                                            this data is used to improve nexrender and its features, read on what is collected in the readme
 
     --force-patch                           forces commandLineRenderer.jsx patch (re)installation
 
@@ -108,6 +140,10 @@ if (args['--help']) {
 
     --polling                               amount of miliseconds to wait before checking queued projects from the api,
                                             if specified will be used instead of NEXRENDER_API_POLLING env variable
+
+    --header                                Define custom header that the worker will use to communicate with nexrender-server.
+                                            Accepted format follows curl or wget request header definition,
+                                            eg. --header="Some-Custom-Header: myCustomValue".
 
     --multi-frames                          (from Adobe site): More processes may be created to render multiple frames simultaneously,
                                             depending on system configuration and preference settings.
@@ -161,10 +197,6 @@ console.log(chalk`> starting {bold.cyan nexrender-worker} endpoint {bold ${serve
 
 let settings = {};
 const opt = (key, arg) => {if (args[arg]) {
-    //If not specified == true, otherwise false
-    if(key === "stopOnError"){
-        args[arg] = false;
-    }
     settings[key] = args[arg];
 }}
 
@@ -173,9 +205,11 @@ if (settings.hasOwnProperty('ae-params')) {
     settings['aeParams'] = settings['ae-params']
 }
 
+opt('name',                 '--name');
 opt('binary',               '--binary');
 opt('workpath',             '--workpath');
 opt('no-license',           '--no-license');
+opt('no-analytics',         '--no-analytics');
 opt('skipCleanup',          '--skip-cleanup');
 opt('skipRender',           '--skip-render');
 opt('forceCommandLinePatch','--force-patch');
@@ -183,11 +217,26 @@ opt('debug',                '--debug');
 opt('multiFrames',          '--multi-frames');
 opt('reuse',                '--reuse');
 opt('stopOnError',          '--stop-on-error');
+opt('tolerateEmptyQueues',  '--tolerate-empty-queues');
+opt('exitOnEmptyQueue',     '--exit-on-empty-queue');
 opt('maxMemoryPercent',     '--max-memory-percent');
 opt('imageCachePercent',    '--image-cache-percent');
 opt('polling',              '--polling');
 opt('wslMap',               '--wsl-map');
 opt('aeParams',             '--aerender-parameter');
+opt('tagSelector',          '--tag-selector');
+
+if(args['--cache-path']){
+    opt('cache', '--cache-path');
+}else if(args['--cache']){
+    opt('cache', '--cache');
+}
+
+if (args['--stop-on-error']) {
+    settings['stopOnError'] = true;
+} else {
+    settings['stopOnError'] = false;
+}
 
 if (args['--cleanup']) {
     settings = init(Object.assign(settings, {
@@ -210,4 +259,23 @@ if (settings['no-license']) {
     settings.addLicense = true;
 }
 
-start(serverHost, serverSecret, settings);
+if (settings['no-analytics']) {
+    settings.noAnalytics = true;
+    delete settings['no-analytics'];
+}
+
+settings['process'] = 'nexrender-worker-cli';
+
+const headers = {};
+if (args['--header']){
+    args['--header'].forEach((header) => {
+        const [key, value] = header.split(":");
+
+        // Only set header if both header key and value are defined
+        if(key && value){
+            headers[key.trim()] = value.trim();
+        }
+    });
+}
+
+start(serverHost, serverSecret, settings, headers);

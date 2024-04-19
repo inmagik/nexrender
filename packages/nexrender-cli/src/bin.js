@@ -4,7 +4,7 @@ const fs               = require('fs')
 const arg              = require('arg')
 const chalk            = require('chalk')
 const {version}        = require('../package.json')
-const {init, render}   = require('@nexrender/core')
+const nexrender        = require('@nexrender/core')
 const rimraf           = require('rimraf')
 
 const args = arg({
@@ -17,12 +17,15 @@ const args = arg({
     '--binary':     String,
     '--workpath':   String,
     '--wsl-map':    String,
+    '--cache':      Boolean,
+    '--cache-path': String,
 
     '--stop-on-error':  Boolean,
 
     '--skip-cleanup':   Boolean,
     '--skip-render':    Boolean,
     '--no-license':     Boolean,
+    '--no-analytics':   Boolean,
     '--force-patch':    Boolean,
     '--debug':          Boolean,
     '--multi-frames':   Boolean,
@@ -31,6 +34,7 @@ const args = arg({
 
     '--max-memory-percent':  Number,
     '--image-cache-percent': Number,
+    '--max-render-timeout': Number,
 
     '--aerender-parameter': [String],
 
@@ -83,14 +87,24 @@ if (args['--help']) {
 
       -m, --wsl-map                         drive letter of your WSL mapping in Windows
 
+
   {bold ADVANCED OPTIONS}
 
+
+    --cache                                 Boolean flag that enables default HTTP caching of assets.
+                                            Will save cache to [workpath]/http-cache unless "--cache-path is used"
+
+    --cache-path                            String value that sets the HTTP cache path to the provided folder path.
+                                            "--cache" will default to true if this is used.
 
     --stop-on-error                         forces worker to stop if processing/rendering error occures,
                                             otherwise worker will report an error, and continue working
 
     --no-license                            prevents creation of the ae_render_only_node.txt file (enabled by default),
                                             which allows free usage of trial version of Adobe After Effects
+
+    --no-analytics                          prevents collection of fully anonymous analytics by nexrender (enabled by default),
+                                            this data is used to improve nexrender and its features, read on what is collected in the readme
 
     --force-patch                           forces commandLineRenderer.jsx patch (re)installation
 
@@ -109,6 +123,9 @@ if (args['--help']) {
                                             the value is a percentage of the installed RAM, and is otherwise a percentage of n.
                                             The value of n is 2 GB for 32-bit Windows, 4 GB for 64-bit Windows, and 3.5 GB for Mac OS.
 
+    --max-render-timeout                    set max render timeout in seconds,
+                                            will abort rendering if it takes longer than this value (default: 0 -disabled)
+
     --image-cache-percent                   (from Adobe site): specifies the maximum percentage of memory used
                                             to cache already rendered images and footage.
 
@@ -122,7 +139,6 @@ if (args['--help']) {
     --aerender-parameter, --ae              forward parameter to aerender (see Adobe site). Parameters with arguments have to be
                                             enclosed in single quotes. For example:
                                             nexrender --aerender-parameter 'close SAVE_CHANGES' --ae 'i 10' job.json
-
 
   {bold ENV VARS}
 
@@ -155,6 +171,7 @@ if (settings.hasOwnProperty('ae-params')) {
 opt('binary',               '--binary');
 opt('workpath',             '--workpath');
 opt('no-license',           '--no-license');
+opt('no-analytics',         '--no-analytics');
 opt('skipCleanup',          '--skip-cleanup');
 opt('skipRender',           '--skip-render');
 opt('forceCommandLinePatch','--force-patch');
@@ -164,9 +181,16 @@ opt('multiFramesCPU',       '--multi-frames-cpu');
 opt('reuse',                '--reuse');
 opt('stopOnError',          '--stop-on-error');
 opt('maxMemoryPercent',     '--max-memory-percent');
+opt('maxRenderTimeout',     '--max-render-timeout');
 opt('imageCachePercent',    '--image-cache-percent');
 opt('wslMap',               '--wsl-map');
 opt('aeParams',             '--aerender-parameter');
+
+if(args['--cache-path']){
+    opt('cache', '--cache-path');
+}else if(args['--cache']){
+    opt('cache', '--cache');
+}
 
 /* debug implies verbose */
 settings.verbose = settings.debug;
@@ -176,8 +200,13 @@ if (settings['no-license']) {
     delete settings['no-license'];
 }
 
+if (settings['no-analytics']) {
+    settings.noAnalytics = true;
+    delete settings['no-analytics'];
+}
+
 if (args['--cleanup']) {
-    settings = init(Object.assign(settings, {
+    settings = nexrender.init(Object.assign(settings, {
         logger: console
     }))
 
@@ -214,15 +243,17 @@ try {
     process.exit(1);
 }
 
-settings = init(Object.assign(settings, {
-    logger: console
+settings = nexrender.init(Object.assign(settings, {
+    process: process.pkg && process.pkg.entrypoint ? 'nexrender-cli-bin' : 'nexrender-cli',
+    logger: console,
 }))
 
-render(parsedJob, settings)
+nexrender.render(parsedJob, settings)
     .then(() => {
         console.log('> job rendering successfully finished')
     })
     .catch(err => {
         console.error('> job rendering failed')
         console.error(err)
+        process.exit(1);
     })

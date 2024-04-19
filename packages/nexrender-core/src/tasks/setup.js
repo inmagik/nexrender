@@ -3,21 +3,18 @@ const path    = require('path')
 const mkdirp  = require('mkdirp')
 const assert  = require('assert')
 
-const { create, validate } = require('@nexrender/types/job')
+const { validate } = require('@nexrender/types/job')
 
 /**
  * This task creates working directory for current job
  */
 module.exports = (job, settings) => {
-    /* fill default job fields */
-    job = create(job)
-
     settings.logger.log(`[${job.uid}] setting up job...`);
 
     try {
         assert(validate(job) == true)
     } catch (err) {
-        return Promise.reject('Error veryifing job: ' + err)
+        return Promise.reject(new Error('Error veryifing job: ' + err))
     }
 
     if (job.template.outputModule && !job.template.outputExt) {
@@ -39,7 +36,7 @@ An example of how that might look like: { "outputModule": "h264", "outputExt": "
     }
 
     // NOTE: for still (jpg) image sequence frame filename will be changed to result_[#####].jpg
-    if (job.template.outputExt && ['jpeg', 'jpg', 'png'].indexOf(job.template.outputExt) !== -1) {
+    if (job.template.outputExt && ['jpeg', 'jpg', 'png', 'tif'].indexOf(job.template.outputExt) !== -1) {
         job.resultname = 'result_[#####].' + job.template.outputExt;
         job.template.imageSequence = true;
     }
@@ -59,10 +56,17 @@ P.S. to prevent nexrender from removing temp file data, you also can please prov
 
     // setup paths
     job.workpath = path.join(settings.workpath, job.uid);
-    job.output   = job.output || path.join(job.workpath, job.resultname);
+    job.output   = job.template.output || job.output || path.join(job.workpath, job.resultname);
     mkdirp.sync(job.workpath);
 
     settings.logger.log(`[${job.uid}] working directory is: ${job.workpath}`);
+
+    settings.track('Job Setup Succeeded', {
+        job_id: job.uid, // anonymized internally
+        job_set_output_ext: !!job.template.outputExt,
+        job_set_output_module: !!job.template.outputModule,
+        job_set_output_image_sequence: !!job.template.imageSequence,
+    })
 
     return Promise.resolve(job)
 };

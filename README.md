@@ -3,15 +3,16 @@
 </p>
 
 <div align="center">
-    <a href="https://travis-ci.org/inlife/nexrender"><img src="https://travis-ci.org/inlife/nexrender.svg?branch=master" alt="Build status" /></a>
+    <a href="https://github.com/inlife/nexrender/releases"><img alt="GitHub Release Date" src="https://img.shields.io/github/release-date/inlife/nexrender" /></a>
+    <a href="https://stand-with-ukraine.pp.ua"><img alt="Made in Ukraine" src="https://img.shields.io/badge/made_in-ukraine-ffd700.svg?labelColor=0057b7" /></a>
     <a href="https://github.com/inlife/nexrender/releases"><img src="https://img.shields.io/github/downloads/inlife/nexrender/total?label=release%20downloads"/></a>
     <a href="https://www.npmjs.com/package/@nexrender/core"><img src="https://img.shields.io/npm/dt/@nexrender/core?label=npm%20downloads"/></a>
-    <a href="https://discord.gg/S2JtRcB"><img src="https://discordapp.com/api/guilds/354670964400848898/embed.png" alt="Discord server" /></a>
+    <a href="https://discord.gg/S2JtRcB"><img src="https://discordapp.com/api/guilds/250389725406429199/embed.png" alt="Discord server" /></a>
 </div>
 
 <br />
 <div align="center">
-    Automate your Adobe After Effects rendering workflows. Create data-driven and template based videos.
+    Automate your <a href="https://github.com/inlife/awesome-ae">Adobe After Effects</a> rendering workflows. Create data-driven and template based videos.
 </div>
 
 <div align="center">
@@ -147,8 +148,7 @@ and that have basic knowledge of `javascript` language and `json` formats.
 
 ### Alternatives
 
-Probably the closest (feature-wise) alternative that exists at the moment is the Dataclay's [Templater](http://dataclay.com/) bot edition.
-Compared to nexrender it has a rich GUI support and a number of enterprise-scale features, however, it is not free.
+Among the alternatives, there is Plainly, a tool built on **Nexrender** infrastructure that offers cloud rendering. Another noteworthy option currently available is Dataclay's Templater bot edition.
 
 # Installation
 
@@ -220,6 +220,23 @@ $ nexrender-cli --file myjob.json
 > Note: its recommended to run `nexrender-cli -h` at least once, to read all useful information about available options.
 
 More info: [@nexrender/cli](packages/nexrender-cli)
+
+#### After Effects 2023
+
+Please not that for After Effects 2023, it's vital to set up an Output Module, even if you want to rely on the default output module. After Effects 2023 rendering binary (aerender) in a lot of cases will not render a composition unless it has a configured output module. Additionally, AE2023 now allows rendering directly to mp4, so consider setting up a custom value for `outputExt` as well. To do that, take a look at following example:
+
+```json
+// myjob.json
+{
+    "template": {
+        "src": "file:///users/myuser/documents/myproject_ae2023.aep",
+        "composition": "main",
+        "outputModule": "H.264 - Match Render Settings - 15 Mbps",
+        "outputExt": "mp4",
+        "settingsTemplate": "Best Settings"
+    }
+}
+```
 
 ### Assets
 
@@ -297,6 +314,7 @@ There are multiple built-in modules within nexrender ecosystem:
 * [@nexrender/action-encode](packages/nexrender-action-encode)
 * [@nexrender/action-upload](packages/nexrender-action-upload)
 * [@nexrender/action-cache](packages/nexrender-action-cache)
+* [@nexrender/action-decompress](packages/nexrender-action-decompress)
 * (list will be expanded)
 
 Every module might have his own set of fields, however, `module` field is always there.
@@ -346,6 +364,8 @@ Job structure has more fields, that we haven't checked out yet. The detailed ver
 
 ```js
 {
+    "tags": String,
+    "priority": Number,
     "template": {
         "src": String,
         "composition": String,
@@ -358,6 +378,9 @@ Job structure has more fields, that we haven't checked out yet. The detailed ver
         "settingsTemplate": String,
         "outputModule": String,
         "outputExt": String,
+
+        "renderSettings": String,
+        "outputSettings": String,
     },
     "assets": [],
     "actions": {
@@ -375,6 +398,10 @@ Job structure has more fields, that we haven't checked out yet. The detailed ver
 Majority of the fields are just proxied to the `aerender` binary, and their descriptions and default
 values can be checked [here](https://helpx.adobe.com/after-effects/using/automated-rendering-network-rendering.html).
 
+- `tags` (optional) (example `primary,plugins` : comma delimited ) is a piece of information that describes the job that it is assigned to. It can be used by the worker(s) / or api client(s) to pickup the job with specific tags (see `tagSelector` [here](packages/nexrender-worker) ). Tags name must be an alphanumeric.
+
+- `priority` (default 0) is a number of priority. Jobs are selected based on their priority field by the worker, in case of a collision it will choose the oldest one.
+
 - `onChange` is a [callback](https://github.com/inlife/nexrender/blob/master/packages/nexrender-core/src/helpers/state.js) which will be triggered every time the job state is changed (happens on every task change).
 
 - `onRenderProgress` is a [callback](https://github.com/inlife/nexrender/blob/master/packages/nexrender-core/src/tasks/render.js) which will be triggered every time the rendering progress has changed.
@@ -391,7 +418,7 @@ Note: Callback functions are only available via programmatic use. For more infor
 
 > **Note:** Job states are mainly used for network rendering. If you are using `nexrender-cli` you can skip this section.
 
-Job can have state feild (`job.state`) be set to one of those values:
+Job can have state field (`job.state`) be set to one of those values:
 
  * `created` (default)
  * `queued` (when pushed to the nexrender-server)
@@ -473,7 +500,10 @@ Second one is responsible for mainly job-related operations of the full cycle: d
 * `imageCachePercent` - integer, undefined by default, check [original documentation](https://helpx.adobe.com/after-effects/using/automated-rendering-network-rendering.html) for more info
 * `addLicense` - boolean, providing false will disable ae_render_only_node.txt license file auto-creation (true by default)
 * `forceCommandLinePatch` - boolean, providing true will force patch re-installation
+* `noAnalytics` - boolean, enables or disables built-in fully-anonymous analytics, false by default
 * `wslMap` - String, set WSL drive map, check [wsl](#wsl) for more info
+* `maxRenderTimeout` - Number, set max render timeout in seconds, will abort rendering if it takes longer than this value (default: 0 - disabled)
+* `cache` - boolean or string. Set the cache folder used by HTTP assets. If `true` will use the default path of `${workpath}/http-cache`, if set to a string it will be interpreted as a filesystem path to the cache folder.
 
 More info: [@nexrender/core](packages/nexrender-core)
 
@@ -536,11 +566,13 @@ by specifying `src`, and one of the `layerName` or `layerIndex` options.
 * `layerName`: string, target layer name in the After Effects project
 * `layerIndex`: integer, can be used instead of `layerName` to select a layer by providing an index, starting from 1 (default behavior of AE jsx scripting env)
 * `composition`: string, composition where the layer is. Useful for searching layer in specific compositions. If none is provided, it uses the wildcard composition "\*",
-that will result in a wildcard composition matching, and will apply this data to every matching layer in every matching composition. If you want to search in a nested composition you can provide a path to that composition using  `"->"` delimiter.  
+that will result in a wildcard composition matching, and will apply this data to every matching layer in every matching composition. If you want to search in a nested composition you can provide a path to that composition using  `"->"` delimiter.
 For example, `"FULL_HD->intro->logo comp"` matches a composition named `logo comp` that is used in composition `intro` which in turn is used in composition `FULL_HD`. Note, that `FULL_HD` doesn't have to be the root composition. Make sure to specify a **composition** name, not a layer name.
 * `name`: string, an optional filename that the asset will be saved as. If not provided the `layerName` or the basename of the file will be used
 * `extension`: string, an optional extension to be added to the filename before it is sent for rendering. This is because After Effects expects the file extension to match the content type of the file. If none is provided, the filename will be unchanged.
 * `useOriginal`: boolean, an optional feature specific to the `file://` protocol that prevents nexrender from copying an asset to a local temp folder, and use original instead
+* `sequence` : boolean, an optional feature that allows you to specify that the asset is a sequence of images. If set to true, the asset will be treated as a sequence of images and will be imported as such in After Effects. (default: false) For more information on how to use sequences, check out the [Adobe After Effects documentation](https://helpx.adobe.com/after-effects/using/preparing-importing-still-images.html#Importafootageitemsfromasequenceoffiles)
+* `removeOld`: boolean, an optional feature that allows you to specify that the old asset should be removed from the project. If set to true, the old asset will be removed from the project. (default: false). Please note that removing the old asset will remove all instances of the asset from the project, (including all layers it was added to), not just the one that was replaced.
 
 The specified asset from `src` field will be downloaded/copied to the working directory, and just before rendering will happen,
 a footage item with specified `layerName` or `layerIndex` in the original project will be replaced with the freshly downloaded asset.
@@ -570,6 +602,40 @@ This way you (if you are using network rendering) can not only deliver assets to
             "type": "audio",
             "name": "music.mp3",
             "layerIndex": 15
+        }
+    ]
+}
+```
+
+### HTTP caching
+When using the `http` or `https` protocol, you can utilize local caching to minimize the amount of data that have to be transferred over a network and speed up project/assets download. To use HTTP caching, the server serving your assets must support the relevant [HTTP caching semantics](https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching).
+
+The simplest way to enable caching is to use the setting wide cache option (setting`--cache` flag if using CLI or worker CLI, setting `cache: true` when using programmatically). This will enable HTTP based caching for all your assets and project files if they are requested over HTTP from a server that supports the relevant headers.
+
+You can also control caching on a more granular level if desired. For each asset's setting if a `params` property is set, it will be passed directly to [make-fetch-happen](https://github.com/npm/make-fetch-happen) which includes the `cachePath` property that you can set to a custom folder path (or null if you want to disable caching for a particular asset only).
+
+> Note: caches are not cleared automatically so you may need to monitor the cache folder size if you are using a lot of large assets over time. Assets, if they have been cached, will always resolve even if they are stale and the server is not available.
+
+### Example
+```json
+{
+    "assets": [
+        {
+            "src": "https://example.com/assets/image.jpg",
+            "type": "image",
+            "layerName": "MyNicePicture.jpg",
+            "params": {
+                "cachePath": "/tmp/my-nexrender-cache"
+            }
+        },
+        {
+            "src": "https://example.com/assets/jpeg-without-extension",
+            "type": "image",
+            "layerName": "MyOtherNicePicture.jpg",
+            "extension": "jpg",
+            "params": {
+                "cachePath": "/tmp/my-nexrender-cache"
+            }
         }
     ]
 }
@@ -1299,6 +1365,48 @@ localhostForwarding=true
 
 > Github Issue: [WSL 2 consumes massive amounts of RAM and doesn't return it](https://github.com/microsoft/WSL/issues/4166)
 
+## Analytics
+
+Product collects fully anonymous analytics. This is done to allow us to understand how our customers use the product, and to improve it. We do not collect any personal information. The analytics/telemetry data does not contain any Personally Identifiable Information or anything that could be used to identify a user, organiztion or any other entity.
+
+Only identifier used to distinct between users is a unique random 32-character hash.
+
+Data that is collected:
+* nexrender process status
+    * initialization succeeded/not
+    * did any errors happen, if so how many
+    * did render start and end successfully
+    * how long did render take
+    * what was the after effects version
+    * etc
+* some of nexreder configuration options
+    * is wsl enabled yes/no
+    * was workpath changed yes/no
+    * was the skip cleanup enabled yes/no
+    * etc
+    * **this is done to better understand usage of key parameters and combiation of options**
+* a few general-level points on the system
+    * what is the OS name and version (Windows/macOS/Linux)
+    * what is the CPU and GPU models
+    * what is the amount of memory
+    * is nexrender being run within a docker yes/no
+    * **this is done to better understand capabilities of hardware the nexrender is typically being run on**
+
+Data is **IS NOT** being collected:
+* any personal identifiable information
+    * no email/name/ip address
+    * no os user names
+    * no system/hardware indentifiers
+    * no location/country data
+* any project related data
+    * no project/template names
+    * no server/host names
+    * no asset names or urls
+    * no script, expression or textual data
+    * no credentials or any other configuration parameters
+
+Analytics can be disabled by either using option: `noAnalytics: true`, or setting binary flag: `--no-analytics`.
+
 ## Problems
 
 There might be a lot of problems creeping around, since this tool works as an intermediary and coordinator for a bunch of existing complex technologies, problems is something inescapable. However, we will try our best to expand and keep this section up to date with all possible caveats and solutions for those problems.
@@ -1365,6 +1473,12 @@ Here you can find a list of packages published by other contributors:
 * [pulsedemon/nexrender-action-run-command](https://github.com/pulsedemon/nexrender-action-run-command) - Run shell commands as a nexrender action
 * [oksr/nexrender-action-slack-message](https://github.com/oksr/nexrender-action-slack-message) - Utility module for sending a Slack message when render start/finish or render error.
 * [vonstring/nexrender-action-mogrt-template](https://github.com/vonstring/nexrender-action-mogrt-template) - Added .mogrt support to Nexrender
+* [sumitgohil/nexrender-action-webhook](https://github.com/sumitgohil/nexrender-action-webhook) - Call a WebHook url once the project completion has been done.
+* [backbeatmedia/nexrender-action-s3-cache](https://github.com/backbeatmedia/nexrender-action-s3-cache) - Cache your template source and assets to a local S3 bucket and use it on future runs, and make it available to other instances rendering the same material
+* [backbeatmedia/nexrender-comp-sequence](https://github.com/backbeatmedia/nexrender-comp-sequence) - This plugin causes comps in the target project to be combined into one comp before rendering
+* [backbeatmedia/nexrender-trim-comp](https://github.com/backbeatmedia/nexrender-trim-comp) - This plugin trims the work area of a comp to the duration of a layer, plus an optional, configurable handle.
+* [backbeatmedia/nexrender-action-sanity-patch](https://github.com/backbeatmedia/nexrender-action-sanity-patch) - Modify data in a Sanity document
+* [backbeatmedia/nexrender-sanity-upload](https://github.com/backbeatmedia/nexrender-sanity-upload) - Upload assets to a Sanity account and connect them to a document
 * [somename/package-name](#) - a nice description of a nice package doing nice things
 
 Since nexrender allows to use external packages installed globally from npm, its quite easy to add your own modules
@@ -1493,6 +1607,7 @@ If you've used nexrender, and you like it, please feel free to add yourself into
 * [NewFlight](https://newflight.co)
 * [den frie vilje](https://denfrievilje.dk)
 * [DR (Danish National Broadcaster)](https://dr.dk)
+* [TV2 (Danish Broadcaster)](https://tv2.dk/)
 * you name goes here
 
 ## Plans

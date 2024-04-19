@@ -17,7 +17,7 @@ nexrender.typesMatch = function (types, layer) {
     }).length > 0;
 };
 
-nexrender.replaceFootage = function (layer, filepath) {
+nexrender.replaceFootage = function (layer, filepath, sequence, removeOldFootage) {
     if (!layer) { return false; }
 
     var file = new File(filepath);
@@ -27,12 +27,19 @@ nexrender.replaceFootage = function (layer, filepath) {
     }
 
     var importOptions = new ImportOptions(file);
-    //importOptions.importAs = ImportAsType.COMP; // you can do stuff like this at this point for PSDs
+
+    if (sequence) { importOptions.sequence = true;}
     var theImport = app.project.importFile(importOptions);
+
+    var oldFootage = layer.source || null;
+
     layer.replaceSource(theImport, true);
+
+    if (removeOldFootage && oldFootage) oldFootage.remove();
 
     return true;
 };
+
 
 /* invoke callback for every composition matching specific name */
 nexrender.selectCompositionsByName = function(name, callback) {
@@ -171,12 +178,12 @@ nexrender.selectLayersByType = function(
   });
 
   if (!foundOnce && !continueOnMissing) {
-    throw new Error( 
-      "nexrender: Couldn't find any layers by provided type (" 
+    throw new Error(
+      "nexrender: Couldn't find any layers by provided type ("
       + type +
-      ") inside a composition: " 
+      ") inside a composition: "
       + compositionName
-    ); 
+    );
   }
 };
 
@@ -237,7 +244,7 @@ nexrender.changeValueForKeypath = function (layer, keys, val) {
                 }
                 return { "value": o, "changed": true };
             } else {
-                throw new Error("nexrender: Can't find a property sequence " + keys.join('.') + " for key: " + key);
+                throw new Error("nexrender: Can't find a property sequence " + keys.join('.') + " for key: " + key + "within layer: " + layer.name);
             }
         }
     }
@@ -252,4 +259,4 @@ nexrender.changeValueForKeypath = function (layer, keys, val) {
 
 /* end of custom user script */
 },{}]},{},[1]);
-`
+`;

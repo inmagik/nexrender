@@ -1,8 +1,11 @@
 {
   "name": "@nexrender/server",
-  "version": "1.39.6",
+  "version": "1.49.3",
   "author": "inlife",
   "main": "src/index.js",
+  "homepage": "https://www.nexrender.com",
+  "bugs": "https://github.com/inlife/nexrender/issues",
+  "repository": "https://github.com/inlife/nexrender.git",
   "scripts": {
     "start": "node src/bin.js",
     "pkg-prelink": "node ../../misc/prelink.js"
@@ -12,14 +15,14 @@
   },
   "pkg": {
     "targets": [
-      "node12-macos-x64",
-      "node12-linux-x64",
-      "node12-win-x64"
+      "node18-macos-x64",
+      "node18-linux-x64",
+      "node18-win-x64"
     ]
   },
   "dependencies": {
-    "@nexrender/database-redis": "^1.38.1",
-    "@nexrender/types": "^1.38.0",
+    "@nexrender/database-redis": "^1.45.6",
+    "@nexrender/types": "^1.45.6",
     "arg": "^4.1.0",
     "async-mutex": "^0.3.2",
     "chalk": "^2.4.2",

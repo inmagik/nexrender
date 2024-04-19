@@ -1,34 +1,41 @@
 {
   "name": "@nexrender/core",
-  "version": "1.39.4",
+  "version": "1.50.6",
   "main": "src/index.js",
   "author": "Inlife",
+  "homepage": "https://www.nexrender.com",
+  "bugs": "https://github.com/inlife/nexrender/issues",
+  "repository": "https://github.com/inlife/nexrender.git",
   "scripts": {
-    "pkg-prelink": "node ../../misc/prelink.js"
+    "pkg-prelink": "node ../../misc/prelink.js",
+    "test": "mocha"
   },
   "dependencies": {
-    "@nexrender/types": "^1.38.0",
+    "@nexrender/types": "^1.45.6",
     "data-uri-to-buffer": "^3.0.0",
     "file-uri-to-path": "^2.0.0",
     "is-wsl": "^2.2.0",
-    "match-all": "^1.2.5",
+    "make-fetch-happen": "^11.0.2",
     "mime-types": "^2.1.29",
     "mkdirp": "^1.0.4",
-    "node-fetch": "^2.6.7",
+    "nanoid": "^3.2.0",
     "requireg": "^0.2.1",
-    "rimraf": "^3.0.2"
+    "rimraf": "^3.0.2",
+    "strip-comments": "^2.0.1"
   },
   "peerDependencies": {
     "@nexrender/action-copy": "^1.0.0",
+    "@nexrender/action-decompress": "^1.48.2",
     "@nexrender/action-encode": "^1.1.4",
     "@nexrender/action-upload": "^1.0.0",
     "@nexrender/provider-ftp": "^1.17.2",
     "@nexrender/provider-gs": "^1.21.3",
+    "@nexrender/provider-nx": "^1.47.0",
     "@nexrender/provider-s3": "^1.21.4",
     "@nexrender/provider-sftp": "^1.37.9"
   },
   "publishConfig": {
     "access": "public"
   },
-  "gitHead": "84cef65e008026f6fcf4f040943144401f101fce"
+  "gitHead": "441c3e3127cb50b603263fd560b617482b31eda8"
 }

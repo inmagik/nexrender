@@ -1,10 +1,9 @@
 {
   "name": "@nexrender/provider-sftp",
-  "version": "1.38.0",
+  "homepage": "https://www.nexrender.com",
+  "version": "1.50.5",
   "main": "src/index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "scripts": {},
   "author": "Bram Speeckaert",
   "license": "ISC",
   "keywords": [],
@@ -12,5 +11,8 @@
   "publishConfig": {
     "access": "public"
   },
-  "gitHead": "b787c28c083185753d51cfb1b6d3dc4a6a5bda64"
+  "gitHead": "b787c28c083185753d51cfb1b6d3dc4a6a5bda64",
+  "dependencies": {
+    "sftps": "^0.2.8"
+  }
 }

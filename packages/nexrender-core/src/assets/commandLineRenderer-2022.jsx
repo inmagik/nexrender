@@ -1,4 +1,4 @@
-module.exports = /*syntax:js*/ `// Command line renderer for After Effects. (nexrender-patch-v1.0.3)
+module.exports = /*syntax:js*/ `// Command line renderer for After Effects. (nexrender-patch-v1.0.4)
 
 // This function constructs an AECommandLineRenderer object.
 // One and only one of these will be created to perform rendering tasks
@@ -254,7 +254,7 @@ function AECommandLineRenderer() {
 
         // ExtendScript too old to have str.trim(), replace when it does
         function trim(s) {
-            return s.replace(/^\s+|\s+$/g, '');
+            return s.replace(/^s+|s+$/g, '');
         }
 
         for (var i in keyValuePairs) {

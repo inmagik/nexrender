@@ -1,14 +1,12 @@
 const fs       = require('fs')
 const url      = require('url')
 const path     = require('path')
-const fetch    = require('node-fetch').default
+const requireg = require('requireg')
+const fetch    = require('make-fetch-happen')
 const uri2path = require('file-uri-to-path')
 const data2buf = require('data-uri-to-buffer')
-const mime = require('mime-types')
+const mime     = require('mime-types')
 const {expandEnvironmentVariables} = require('../helpers/path')
-
-// TODO: redeuce dep size
-const requireg = require('requireg')
 
 const download = (job, settings, asset) => {
     if (asset.type == 'data') return Promise.resolve();
@@ -29,7 +27,7 @@ const download = (job, settings, asset) => {
 
         /* prevent same name file collisions */
         if (fs.existsSync(path.join(job.workpath, destName))) {
-            destName = Math.random().toString(36).substring(2) + path.extname(asset.src);
+            destName = Math.random().toString(36).substring(2) + path.extname(asset.src).split('?')[0];
         }
     }
 
@@ -50,6 +48,13 @@ const download = (job, settings, asset) => {
 
     asset.dest = path.join(job.workpath, destName);
 
+    settings.trackCombined('Asset Download', {
+        job_id: job.uid, // anonymized internally
+        asset_type: asset.type,
+        asset_protocol: protocol,
+        asset_extension: asset.extension,
+    })
+
     switch (protocol) {
         /* built-in handlers */
         case 'data':
@@ -66,19 +71,32 @@ const download = (job, settings, asset) => {
 
         case 'http':
         case 'https':
+            // Use default cache path if `settings.cache` param is set to simply `true`
+            // Otherwise use value directly (can be string to file path or undefined)
+            const cachePath = settings.cache === true ?
+                path.join(settings.workpath, "http-cache") :
+                settings.cache;
+
+            if (!asset.params) asset.params = {};
+            // Asset's own `params.cachePath` takes precedence (including falsy values)
+            asset.params.cachePath = Object.hasOwn(asset.params, 'cachePath') ?
+                asset.params.cachePath :
+                cachePath;
+
             /* TODO: maybe move to external package ?? */
-            const src = decodeURI(asset.src) === asset.src ? encodeURI(asset.src): asset.src
-            return fetch(src, asset.params || {})
+            const src = asset.src
+            return fetch(src, asset.params)
                 .then(res => res.ok ? res : Promise.reject({reason: 'Initial error downloading file', meta: {src, error: res.error}}))
                 .then(res => {
                     // Set a file extension based on content-type header if not already set
                     if (!asset.extension) {
-                      const contentType = res.headers.get('content-type')
-                      const fileExt = mime.extension(contentType) || undefined
+                        const contentType = res.headers.get('content-type')
+                        const fileExt = mime.extension(contentType) || undefined
 
-                       asset.extension = fileExt
+                        asset.extension = fileExt
                         const destHasExtension = path.extname(asset.dest) ? true : false
-                        //don't do this if asset.dest already has extension else it gives you example.jpg.jpg  like file in case of  assets and aep/aepx file
+                        // don't do this if asset.dest already has extension else it gives you example.jpg.jpg
+                        // like file in case of assets and aep/aepx file
                         if (asset.extension && !destHasExtension) {
                             asset.dest += `.${fileExt}`
                         }

@@ -13,6 +13,7 @@ const create = job => Object.assign({
     type: 'default',
     state: 'created',
     output: '',
+    tags: '',
     priority: job.priority ? job.priority : 0,
 
     template: {
@@ -28,6 +29,9 @@ const create = job => Object.assign({
         outputModule: undefined,
         outputExt: undefined,
         imageSequence: false,
+
+        renderSettings: undefined,
+        outputSettings: undefined,
     },
     assets: [],
     actions: {
@@ -99,8 +103,9 @@ const getRenderingStatus = job => ({
     uid: job.uid,
     state: job.state,
     type: job.type,
+    tags: job.tags || null,
     renderProgress: job.renderProgress || 0,
-    error: job.error || null,
+    error: (job.error && Array.isArray(job.error) ? job.error.join('\n\n') : job.error) || null,
     createdAt: job.createdAt || null,
     updatedAt: job.updatedAt || null,
     startedAt: job.startedAt || null,

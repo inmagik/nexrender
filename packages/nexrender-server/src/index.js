@@ -2,7 +2,7 @@ const cors   = require('micro-cors')
 const micro  = require('micro')
 const {send} = require('micro')
 
-const withCors = cors({ allowHeaders: ['X-Requested-With','Access-Control-Allow-Origin','X-HTTP-Method-Override','Content-Type','Authorization','Accept','nexrender-secret']})
+const withCors = cors({ allowHeaders: ['X-Requested-With','Access-Control-Allow-Origin','X-HTTP-Method-Override','Content-Type','Authorization','Accept','nexrender-secret','nexrender-name']})
 
 const { router, withNamespace } = require('microrouter')
 const { get, post, put, del }   = require('microrouter')
@@ -15,6 +15,7 @@ const subhandler = router(
     ns(get('/jobs',             require('./routes/jobs-fetch'))),
     ns(get('/jobs/status',      require('./routes/jobs-status'))),
     ns(get('/jobs/pickup',      require('./routes/jobs-pickup'))),
+    ns(get('/jobs/pickup/:tags',require('./routes/jobs-pickup'))),
     ns(get('/jobs/:uid/status', require('./routes/jobs-status'))),
     ns(get('/jobs/:uid',        require('./routes/jobs-fetch'))),
     ns(put('/jobs/:uid',        require('./routes/jobs-update'))),
@@ -37,7 +38,7 @@ const handler = secret => {
 
 module.exports = {
     createHandler: handler,
-    listen: (port = 3000, secret = '') => {
-        return micro(handler(secret)).listen(port)
+    listen: (port = 3000, secret = '', callback) => {
+        return micro(handler(secret)).listen(port, callback)
     }
 }

@@ -1,2 +1,2 @@
-// simple test of code syntax
+// simple syntax test
 require('../src')
