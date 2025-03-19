@@ -3,6 +3,7 @@ const { init, render } = require('@nexrender/core')
 const { getRenderingStatus } = require('@nexrender/types/job')
 const { fetchAndRewriteTemplate } = require('./template.js')
 const pkg = require('../package.json')
+const os = require('os')
 
 const NEXRENDER_API_POLLING = process.env.NEXRENDER_API_POLLING || 30 * 1000;
 const NEXRENDER_TOLERATE_EMPTY_QUEUES = process.env.NEXRENDER_TOLERATE_EMPTY_QUEUES;
@@ -79,6 +80,7 @@ const createWorker = () => {
 
         headers = headers || {};
         headers['user-agent'] = ('nexrender-worker/' + pkg.version + ' ' + (headers['user-agent'] || '')).trim();
+        headers['Kiuu-Hostname'] = os.hostname()
 
         const client = createClient({ host, secret, headers, name: settings.name });
 
