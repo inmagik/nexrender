@@ -156,7 +156,8 @@ const createWorker = () => {
                 }
 
                 settings.track('Worker Job Finished', { job_id: job.uid })
-
+                console.log(`[${job.uid}] render finished successfully. Updating the job state to ${job.state}... Progress: ${job.renderProgress}`)
+                job.renderProgress = 100; // just to be sure
                 await client.updateJob(job.uid, getRenderingStatus(job))
             } catch (err) {
                 job.error = [].concat(job.error || [], [err.toString()]);

@@ -1,6 +1,6 @@
 {
   "name": "@inmagik/nexrender-worker",
-  "version": "1.50.6",
+  "version": "1.50.6c",
   "author": "inmagik",
   "main": "src/index.js",
   "homepage": "https://www.nexrender.com",
